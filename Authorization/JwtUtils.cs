@@ -18,10 +18,14 @@ public interface IJwtUtils
 
 public class JwtUtils : IJwtUtils
 {
+    private DataContext _context;
     private readonly AppSettings _appSettings;
 
-    public JwtUtils(IOptions<AppSettings> appSettings)
+    public JwtUtils(
+        DataContext context,
+        IOptions<AppSettings> appSettings)
     {
+        _context = context;
         _appSettings = appSettings.Value;
     }
 
@@ -76,14 +80,26 @@ public class JwtUtils : IJwtUtils
     {
         var refreshToken = new RefreshToken
         {
-            // token consists of a cryptographically strong random sequence of values prepended with a timestamp
-            Token = DateTime.UtcNow.Ticks + Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-            // token that is valid for 7 days
+            Token = getUniqueToken(),
+            // token is valid for 7 days
             Expires = DateTime.UtcNow.AddDays(7),
             Created = DateTime.UtcNow,
             CreatedByIp = ipAddress
         };
 
         return refreshToken;
+
+        string getUniqueToken()
+        {
+            // token is a cryptographically strong random sequence of values
+            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            // ensure token is unique by checking against db
+            var tokenIsUnique = !_context.Users.Any(u => u.RefreshTokens.Any(t => t.Token == token));
+
+            if (!tokenIsUnique)
+                return getUniqueToken();
+            
+            return token;
+        }
     }
 }
