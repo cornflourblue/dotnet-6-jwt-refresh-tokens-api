@@ -40,3 +40,9 @@ typings
 # .NET compiled files
 bin
 obj
+
+.vs
+app.db
+
+# May remove the following later
+Properties
